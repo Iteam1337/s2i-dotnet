@@ -7,6 +7,16 @@
 #	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
 #
 
+set -e
+
+# User settable environment
+DOTNET_CONFIGURATION="${DOTNET_CONFIGURATION:-Release}"
+DOTNET_STARTUP_PROJECT="${DOTNET_STARTUP_PROJECT:-.}"
+DOTNET_RESTORE_ROOT="${DOTNET_RESTORE_ROOT:-.}"
+
+# Private environment
+DOTNET_FRAMEWORK="netcoreapp1.1"
+
 if [[ "$1" == "-h" ]]; then
 	# If the 'dotnet-builder' assemble script is executed with '-h' flag,
 	# print the usage.
@@ -26,9 +36,22 @@ fi
 # here you can go ahead an replace this with the actual building of python modules,
 # bundle install, and anything else you need.
 
-echo "---> Building and installing application from source..."
-mv /tmp/src/* /opt/app-root/
+echo "---> Moving application source ..."
+mv /tmp/src/* ./
 
-dotnet restore
-dotnet build
-dotnet publish
+echo "---> Installing dependencies ..."
+dotnet restore $DOTNET_RESTORE_ROOT
+
+echo "---> Building application from source ..."
+dotnet publish -f "$DOTNET_FRAMEWORK" -c "$DOTNET_CONFIGURATION" "$DOTNET_STARTUP_PROJECT"
+
+function fix-permissions {
+	chgrp -R 0 $1
+	chmod -R og+rw $1
+	find $1 -type d -exec chmod g+x {} +
+}
+
+# Fix source directory permissions
+fix-permissions ./
+# set permissions for any installed artifacts
+fix-permissions /opt/app-root

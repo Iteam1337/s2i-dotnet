@@ -8,4 +8,13 @@
 # We will turn off daemonizing for the nginx process so that the container
 # doesn't exit after the process runs.
 
-exec dotnet run
+source /opt/app-root/etc/generate_container_user
+
+set -e
+
+# Private environment
+APP_DLL_DIR="bin/Release/netcoreapp1.1/publish"
+APP_DLL_NAME="${DOTNET_STARTUP_PROJECT}.dll"
+
+echo "---> Running application ..."
+cd "${APP_DLL_DIR}" && exec dotnet "${APP_DLL_NAME}"
